@@ -4,14 +4,16 @@ export default {
   name: 'ai',
   aliases: ['ask', 'chat', 'gpt'],
   category: 'utility',
-  description: 'Tanya AI (OpenAI/Anthropic/Groq)',
+  description: 'Tanya jawab dengan AI (butuh API key dari owner)',
+  usage: ['ai <pertanyaan>', '@bot <pertanyaan>  (mention bot)'],
+  examples: ['ai jelaskan apa itu API', 'ai translate "good morning" ke bahasa Indonesia'],
   cooldown: 15_000,
 
   async execute(ctx) {
-    if (!aiService.isAvailable()) return ctx.reply('AI tidak tersedia — owner belum konfigurasi API key.')
+    if (!aiService.isAvailable()) return ctx.usage('AI tidak tersedia — owner belum mengisi API key di `.env`.')
 
-    const prompt = ctx.rawArgs
-    if (!prompt) return ctx.reply('Usage: `!ai <pertanyaan>`')
+    const prompt = ctx.rawArgs || ctx.quoted?.text?.trim()
+    if (!prompt) return ctx.usage('Cara pakai: `!ai <pertanyaan>`\nContoh: `!ai jelaskan apa itu API`')
 
     await ctx.typing()
     await ctx.react('🤖')

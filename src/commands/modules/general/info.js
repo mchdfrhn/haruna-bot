@@ -2,17 +2,17 @@ import { F } from '#helpers/index.js'
 import { commandRegistry } from '#commands/registry.js'
 import SETTINGS from '#environment/settings.js'
 
-const startTime = Date.now()
-
 export default {
   name: 'info',
   aliases: ['about', 'botinfo'],
   category: 'general',
-  description: 'Informasi tentang bot',
+  description: 'Info bot: uptime, memori, jumlah command',
+  usage: ['info'],
+  examples: ['info'],
   cooldown: 10_000,
 
   async execute(ctx) {
-    const uptime = F.formatDuration(Date.now() - startTime)
+    const uptime = F.formatDuration(process.uptime() * 1000)
     const mem = process.memoryUsage()
     const memMB = (mem.heapUsed / 1024 / 1024).toFixed(1)
 

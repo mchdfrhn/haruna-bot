@@ -4,7 +4,9 @@ export default {
   name: 'stats',
   aliases: ['statistik', 'dbstats'],
   category: 'owner',
-  description: 'Lihat statistik database & bot',
+  description: 'Statistik database: user, grup, transaksi, ukuran DB',
+  usage: ['stats'],
+  examples: ['stats'],
   cooldown: 0, ownerOnly: true,
 
   async execute(ctx) {

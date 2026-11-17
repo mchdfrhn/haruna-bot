@@ -6,8 +6,10 @@ const RARITY_EMOJI = { common: '⬜', uncommon: '🟩', rare: '🟦', epic: '�
 export default {
   name: 'inventory',
   aliases: ['inv', 'item', 'items'],
-  category: 'economy',
-  description: 'Lihat item yang kamu punya',
+  category: 'shop',
+  description: 'Lihat semua item yang kamu punya beserta ID-nya',
+  usage: ['inventory'],
+  examples: ['inventory'],
   cooldown: 5_000,
 
   async execute(ctx) {
@@ -25,7 +27,7 @@ export default {
       text += `*[${cat.toUpperCase()}]*\n`
       for (const i of grouped[cat]) {
         const emoji = RARITY_EMOJI[i.rarity] ?? '⬜'
-        text += `  ${emoji} *${i.name}* ×${i.quantity}\n`
+        text += `  ${emoji} *${i.name}* ×${i.quantity}\n     \`${i.item_id}\`\n`
       }
       text += '\n'
     }
@@ -33,7 +35,7 @@ export default {
     for (const [cat, list] of Object.entries(grouped)) {
       if (catOrder.includes(cat)) continue
       text += `*[${cat.toUpperCase()}]*\n`
-      for (const i of list) text += `  *${i.name}* ×${i.quantity}\n`
+      for (const i of list) text += `  *${i.name}* ×${i.quantity}\n     \`${i.item_id}\`\n`
     }
 
     await ctx.reply(text.trimEnd())

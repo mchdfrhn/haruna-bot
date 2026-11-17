@@ -15,11 +15,19 @@ class LootboxService {
     if (!inventoryModel.hasItem(jid, lootboxId))
       throw new Error('Kamu tidak punya *Lootbox*. Beli dulu di toko!')
 
-    const rarity = this._rollRarity()
-    const pool = itemModel.findAll().filter(i => i.rarity === rarity && i.category !== 'special')
-    if (!pool.length) return this.open(jid, lootboxId)
+    const candidates = itemModel.findAll().filter(i => i.category !== 'special')
+    if (!candidates.length) throw new Error('Isi lootbox belum tersedia — owner perlu menjalankan `npm run db:seed`.')
+
+    // Roll rarity; jika tidak ada item di rarity itu, turun ke rarity yang lebih rendah
+    const order = RARITY_WEIGHTS.map(r => r.rarity)
+    let pool = []
+    for (let i = order.indexOf(this._rollRarity()); i < order.length && !pool.length; i++) {
+      pool = candidates.filter(it => it.rarity === order[i])
+    }
+    if (!pool.length) pool = candidates
 
     const item = pool[Math.floor(Math.random() * pool.length)]
+    const rarity = item.rarity
     const hadBefore = inventoryModel.hasItem(jid, item.id)
 
     db.transaction(() => {

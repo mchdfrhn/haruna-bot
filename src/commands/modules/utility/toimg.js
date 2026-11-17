@@ -1,28 +1,30 @@
-import { imageToWebp } from '#features/media/sticker.js'
+import { webpToPng } from '#features/media/sticker.js'
 
 export default {
   name: 'toimg',
   aliases: ['toimage', 'jpg', 'png'],
   category: 'utility',
-  description: 'Convert sticker ke gambar',
+  description: 'Ubah stiker menjadi gambar PNG (stiker animasi: frame pertama)',
+  usage: ['toimg'],
+  examples: ['(reply stiker) !toimg'],
   cooldown: 10_000,
 
   async execute(ctx) {
-    const quoted = ctx.quoted
-    if (!quoted || !quoted.isMedia || !quoted.mimetype?.includes('webp')) return ctx.reply('Reply sticker dengan `!toimg`')
+    const q = ctx.quoted
+    if (!q?.isMedia || !q.mimetype?.includes('webp')) return ctx.usage('*Reply* sebuah stiker dengan `!toimg`.')
 
     await ctx.react('⏳')
 
     try {
       const buffer = await ctx.downloadMedia()
-      if (!buffer) return ctx.reply('Gagal download sticker.')
+      if (!buffer) return ctx.usage('❌ Gagal mengunduh stiker.')
 
-      const jpgBuffer = await imageToWebp(buffer)
-      await ctx.sendMedia('image', jpgBuffer, '', { mimetype: 'image/png' })
+      const png = await webpToPng(buffer)
+      await ctx.sendMedia('image', png, q.isAnimated ? '_Stiker animasi — hanya frame pertama._' : '', { mimetype: 'image/png' })
       await ctx.react('✅')
     } catch (err) {
       await ctx.react('❌')
-      await ctx.reply(`❌ ${err.message}`)
+      await ctx.reply(`❌ Gagal mengubah stiker: ${err.message}`)
     }
   },
 }

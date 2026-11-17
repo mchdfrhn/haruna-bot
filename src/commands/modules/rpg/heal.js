@@ -4,7 +4,9 @@ export default {
   name: 'heal',
   aliases: ['sembuh', 'recover'],
   category: 'rpg',
-  description: 'Heal HP kamu ke maksimum',
+  description: 'Pulihkan HP kamu sampai penuh (cooldown 1 menit)',
+  usage: ['heal'],
+  examples: ['heal'],
   cooldown: 60_000,
 
   async execute(ctx) {

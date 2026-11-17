@@ -14,7 +14,9 @@ export default {
   name: 'fish',
   aliases: ['fishing', 'pancing', 'mancing'],
   category: 'rpg',
-  description: 'Pancing ikan untuk dapat uang',
+  description: 'Memancing ikan untuk dapat cash + EXP',
+  usage: ['fish'],
+  examples: ['fish'],
   cooldown: 30_000,
 
   async execute(ctx) {

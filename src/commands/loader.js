@@ -19,9 +19,9 @@ function findJsFiles(dir) {
   return result
 }
 
-function registerCmd(cmd) {
+function registerCmd(cmd, file) {
   if (!cmd?.name || typeof cmd.execute !== 'function') return false
-  commandRegistry.register(cmd)
+  commandRegistry.register(cmd, file)
   return true
 }
 
@@ -34,14 +34,14 @@ export async function loadCommands() {
     try {
       const mod = await import(pathToFileURL(file).href)
 
-      if (mod.default && registerCmd(mod.default)) {
+      if (mod.default && registerCmd(mod.default, file)) {
         loaded++
         continue
       }
 
       let namedCount = 0
       for (const [key, val] of Object.entries(mod)) {
-        if (key !== 'default' && key.endsWith('Command') && registerCmd(val)) {
+        if (key !== 'default' && key.endsWith('Command') && registerCmd(val, file)) {
           namedCount++
         }
       }
@@ -87,14 +87,14 @@ export async function reloadCommand(file) {
 
     if (mod.default?.name) {
       commandRegistry.unregister(mod.default.name)
-      commandRegistry.register(mod.default)
+      commandRegistry.register(mod.default, file)
       count++
     }
 
     for (const [key, val] of Object.entries(mod)) {
       if (key !== 'default' && key.endsWith('Command') && val?.name) {
         commandRegistry.unregister(val.name)
-        commandRegistry.register(val)
+        commandRegistry.register(val, file)
         count++
       }
     }
@@ -105,4 +105,14 @@ export async function reloadCommand(file) {
     logger.error({ err, file }, 'Hot reload failed')
     return false
   }
+}
+
+// Hot-reload semua file command (cache-busting), mengembalikan { ok, failed }
+export async function reloadAllCommands() {
+  let ok = 0, failed = 0
+  for (const file of findJsFiles(MODULES_DIR)) {
+    if (await reloadCommand(file)) ok++
+    else failed++
+  }
+  return { ok, failed }
 }

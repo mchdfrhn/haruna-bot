@@ -5,21 +5,20 @@ import { groupModel, botConfigModel } from '#storage/models/index.js'
 import { logger } from '#helpers/logger.js'
 import SETTINGS from '#environment/settings.js'
 
-const prefixPattern = () => new RegExp(`^[${escapeRegex(SETTINGS.prefix)}]`)
+// Saat grup di-mute, hanya command ini yang masih boleh jalan (supaya admin bisa meng-unmute).
+const MUTE_EXEMPT = new Set(['groupset'])
+
+export const getPrefix = () => botConfigModel.get('bot_prefix') || SETTINGS.prefix
 
 export async function dispatch(parsed, sock) {
   const { text, fromMe } = parsed
   if (!text) return
   if (fromMe && !SETTINGS.respondToSelf) return
 
-  if (parsed.isGroup) {
-    const group = groupModel.find(parsed.jid)
-    if (group?.mute) return
-  }
+  const prefix = getPrefix()
+  if (!text.startsWith(prefix)) return
 
-  if (!prefixPattern().test(text)) return
-
-  const withoutPrefix = text.slice(SETTINGS.prefix.length).trim()
+  const withoutPrefix = text.slice(prefix.length).trim()
   if (!withoutPrefix) return
 
   const [commandName] = withoutPrefix.split(/\s+/)
@@ -28,7 +27,9 @@ export async function dispatch(parsed, sock) {
   const command = commandRegistry.get(commandName.toLowerCase())
   if (!command) return
 
-  const ctx = buildContext(parsed, sock)
+  const ctx = buildContext(parsed, sock, { command, commandName: commandName.toLowerCase(), prefix })
+
+  if (parsed.isGroup && groupModel.find(parsed.jid)?.mute && !MUTE_EXEMPT.has(command.name) && !ctx.isOwner()) return
 
   if (botConfigModel.isMaintenanceMode() && !ctx.isOwner()) {
     return ctx.reply('Bot sedang maintenance. Coba lagi nanti.').catch(() => {})
@@ -44,8 +45,4 @@ export async function dispatch(parsed, sock) {
     logger.error({ err, command: command.name, sender: ctx.sender }, 'Command error')
     await ctx.reply(`Error: ${err.message}`).catch(() => {})
   }
-}
-
-function escapeRegex(str) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }

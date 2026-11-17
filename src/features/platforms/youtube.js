@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { logger } from '#helpers/logger.js'
+import { ytdlp } from './ytdlp.js'
 
 const YT_API_KEY = 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ-vrgitc'
 const YT_PLAYER_URL = 'https://www.youtube.com/youtubei/v1/player'
@@ -13,6 +14,26 @@ const CLIENTS = {
 const VIDEO_ID_RE = /(?:youtu\.be\/|youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|v\/))([A-Za-z0-9_-]{11})/
 
 class YoutubeService {
+  /**
+   * Unduh video/audio YouTube. Memakai yt-dlp bila terpasang (andal, video + audio digabung),
+   * jika tidak, jatuh ke resolver InnerTube bawaan (bisa gagal jika YouTube mengubah API).
+   * @returns {{ buffer, title, duration, quality, mimetype, silent? }}
+   */
+  async download(rawUrl, { audioOnly = false } = {}) {
+    const url = rawUrl.trim()
+    if (!VIDEO_ID_RE.test(url)) throw new Error('URL YouTube tidak valid.')
+
+    if (await ytdlp.isAvailable()) return ytdlp.download(url, { audioOnly })
+
+    const r = await this.resolve(url, { audioOnly })
+    const adaptive = r.mode === 'adaptive'
+    const buffer = await this.toBuffer(audioOnly ? r.url : adaptive ? r.videoUrl : r.url)
+    return {
+      buffer, title: r.title, author: r.author, duration: r.duration, quality: r.quality ?? '',
+      mimetype: audioOnly ? 'audio/mpeg' : 'video/mp4', silent: !audioOnly && adaptive,
+    }
+  }
+
   async resolve(rawUrl, opts = {}) {
     const url = rawUrl.trim()
     const videoId = url.match(VIDEO_ID_RE)?.[1]
@@ -24,7 +45,7 @@ class YoutubeService {
     if (!this._isPlayable(playerData)) { playerData = await this._fetchPlayer(videoId, 'MWEB') }
     if (!this._isPlayable(playerData)) { playerData = await this._fetchPlayer(videoId, 'TVHTML5') }
     if (!this._isPlayable(playerData)) {
-      throw new Error(`Video tidak bisa diputar: ${playerData?.playabilityStatus?.reason ?? 'Unknown'}`)
+      throw new Error(`Video tidak bisa diputar: ${playerData?.playabilityStatus?.reason ?? 'Unknown'}. (Resolver bawaan YouTube sedang bermasalah — owner disarankan memasang yt-dlp.)`)
     }
 
     return this._extract(playerData, videoId, { audioOnly, quality })

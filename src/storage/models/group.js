@@ -8,6 +8,8 @@ class GroupModel {
     ON CONFLICT(jid) DO UPDATE SET name = excluded.name, updated_at = unixepoch()
   `)
 
+  _insertIgnore = lazyPrepare('INSERT INTO groups (jid) VALUES (?) ON CONFLICT(jid) DO NOTHING')
+
   find(jid) { return this._find().get(jid) ?? null }
 
   ensure(jid, name = '') {
@@ -22,6 +24,7 @@ class GroupModel {
       .map(([k]) => `${k} = @${k}`)
       .join(', ')
     if (!updates) return
+    this._insertIgnore().run(jid) // baris grup dibuat otomatis saat pertama kali diatur
     db.prepare(`UPDATE groups SET ${updates}, updated_at = unixepoch() WHERE jid = @jid`).run({ jid, ...fields })
   }
 

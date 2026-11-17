@@ -4,12 +4,14 @@ export default {
   name: 'eval',
   aliases: ['ev', '>'],
   category: 'owner',
-  description: 'Evaluasi kode JavaScript',
+  description: 'Jalankan kode JavaScript (berbahaya — khusus owner)',
+  usage: ['eval <kode>'],
+  examples: ['eval 1 + 1', 'eval ctx.sender'],
   cooldown: 0, ownerOnly: true,
 
   async execute(ctx) {
     const code = ctx.rawArgs
-    if (!code) return ctx.reply('Usage: `!eval <code>`')
+    if (!code) return ctx.usage('Cara pakai: `!eval <kode>`')
     let output, isError = false
     try {
       let result = eval(code)

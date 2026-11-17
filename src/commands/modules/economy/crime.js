@@ -13,7 +13,9 @@ export default {
   name: 'crime',
   aliases: ['kejahatan', 'jahat'],
   category: 'economy',
-  description: 'Lakukan kejahatan (resiko tinggi)',
+  description: 'Lakukan kejahatan — 50% untung, 50% kena denda',
+  usage: ['crime'],
+  examples: ['crime'],
   cooldown: 60 * 60 * 1000,
 
   async execute(ctx) {

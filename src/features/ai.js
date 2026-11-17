@@ -24,7 +24,16 @@ class AIService {
 
   async chat(prompt, history = []) {
     if (!this._provider) throw new Error('AI tidak tersedia — tambahkan API key di .env')
-    return this[`_${this._provider}`](prompt, history)
+    try {
+      return await this[`_${this._provider}`](prompt, history)
+    } catch (err) {
+      const status = err.response?.status
+      if (status === 401 || status === 403) throw new Error('API key AI tidak valid — hubungi owner bot.')
+      if (status === 429) throw new Error('Layanan AI sedang terlalu sibuk / kuota habis. Coba lagi nanti.')
+      if (err.code === 'ECONNABORTED') throw new Error('Layanan AI tidak merespons (timeout). Coba lagi.')
+      logger.warn({ err: err.message, status }, '[AI] request failed')
+      throw err
+    }
   }
 
   _extractContent(data, type) {

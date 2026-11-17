@@ -29,3 +29,12 @@ export function truncate(str, maxLen = 100) {
 }
 
 export const sleep = ms => new Promise(r => setTimeout(r, ms))
+
+// "500" → 500, "2k" → 2000, "1.5m" → 1500000. Mengembalikan null jika bukan angka bulat positif.
+export function parseAmount(input, max = Number.MAX_SAFE_INTEGER) {
+  if (input == null) return null
+  const m = String(input).trim().toLowerCase().replace(/[.,](?=\d{3}\b)/g, '').match(/^(\d+(?:\.\d+)?)([km])?$/)
+  if (!m) return null
+  const n = Math.floor(Number(m[1]) * ({ k: 1e3, m: 1e6 }[m[2]] ?? 1))
+  return n > 0 && n <= max ? n : null
+}

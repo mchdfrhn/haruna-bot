@@ -2,13 +2,18 @@ import { groupModel } from '#storage/models/index.js'
 
 export default {
   name: 'welcome',
-  aliases: ['setwelcome', 'goodbye', 'setbye'],
+  aliases: ['setwelcome'],
   category: 'group',
-  description: 'Atur pesan welcome/goodbye grup',
+  description: 'Atur pesan sambutan member baru (admin)',
+  usage: ['welcome', 'welcome on|off', 'welcome set <pesan>', 'welcome reset'],
+  examples: ['welcome on', 'welcome set Halo {name}, selamat datang di {group}! Kamu member ke-{count}'],
   cooldown: 5_000, groupOnly: true, adminOnly: true,
 
   async execute(ctx) {
-    const sub = ctx.args[0]?.toLowerCase()
+    // !setwelcome <pesan> = !welcome set <pesan>
+    const viaAlias = ctx.commandName === 'setwelcome'
+    const sub = viaAlias ? 'set' : ctx.args[0]?.toLowerCase()
+    const msg = (viaAlias ? ctx.rawArgs : ctx.args.slice(1).join(' ')).trim()
 
     if (sub === 'on' || sub === 'enable' || sub === 'off' || sub === 'disable') {
       const enabled = sub === 'on' || sub === 'enable'
@@ -17,16 +22,26 @@ export default {
     }
 
     if (sub === 'set') {
-      const msg = ctx.rawArgs.replace(/^set\s+/i, '')
-      if (!msg) return ctx.reply('Usage: `!welcome set <pesan>`')
+      if (!msg) return ctx.usage('Cara pakai: `!welcome set <pesan>`\nVariabel: `{name}` `{group}` `{count}`')
       groupModel.update(ctx.jid, { welcome_msg: msg })
-      return ctx.reply('✅ Welcome message diupdate.')
+      return ctx.reply('✅ Pesan welcome diupdate.')
+    }
+
+    if (sub === 'reset') {
+      groupModel.update(ctx.jid, { welcome_msg: '' })
+      return ctx.reply('✅ Pesan welcome dikembalikan ke default.')
     }
 
     const settings = groupModel.find(ctx.jid)
-    if (!settings) return ctx.reply('Grup belum terdaftar.')
-
-    const status = settings.welcome ? '✅ Aktif' : '❌ Nonaktif'
-    await ctx.reply(`👋 *Welcome Settings*\n\nStatus: ${status}\nPesan: ${settings.welcome_msg || '(default)'}`)
+    await ctx.usage([
+      '👋 *Welcome Settings*',
+      '',
+      `Status: ${settings?.welcome ? '✅ Aktif' : '❌ Nonaktif'}`,
+      `Pesan : ${settings?.welcome_msg || '(default)'}`,
+      '',
+      '`!welcome on` / `!welcome off`',
+      '`!welcome set <pesan>` — variabel: `{name}` `{group}` `{count}`',
+      '`!welcome reset`',
+    ].join('\n'))
   },
 }

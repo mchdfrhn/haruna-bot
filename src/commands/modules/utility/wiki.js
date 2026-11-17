@@ -4,25 +4,27 @@ export default {
   name: 'wiki',
   aliases: ['wikipedia', 'ensiklopedia'],
   category: 'utility',
-  description: 'Cari di Wikipedia (Bahasa Indonesia)',
+  description: 'Cari ringkasan artikel di Wikipedia Indonesia',
+  usage: ['wiki <kata kunci>'],
+  examples: ['wiki Candi Borobudur', 'wiki bank indonesia'],
   cooldown: 5_000,
 
   async execute(ctx) {
     const query = ctx.rawArgs
-    if (!query) return ctx.reply('Usage: `!wiki <kata kunci>`')
+    if (!query) return ctx.usage('Cara pakai: `!wiki <kata kunci>`\nContoh: `!wiki Candi Borobudur`')
 
     try {
+      // generator=search: toleran terhadap huruf besar/kecil & mengambil hasil paling relevan
       const data = await downloaderService.fetchJson('https://id.wikipedia.org/w/api.php', {
-        action: 'query', format: 'json', prop: 'extracts', exintro: true, explaintext: true,
-        redirects: 1, titles: query, origin: '*', utf8: 1,
+        action: 'query', format: 'json', generator: 'search', gsrsearch: query, gsrlimit: 1,
+        prop: 'extracts|info', inprop: 'url', exintro: 1, explaintext: 1, redirects: 1, origin: '*', utf8: 1,
       })
 
-      const pages = data?.query?.pages ?? {}
-      const page = Object.values(pages)[0]
-      if (!page || page.missing !== undefined) return ctx.reply(`❌ Artikel "${query}" tidak ditemukan.`)
+      const page = Object.values(data?.query?.pages ?? {})[0]
+      if (!page) return ctx.reply(`❌ Artikel "${query}" tidak ditemukan.`)
 
-      const text = `📖 *${page.title}*\n\n${(page.extract || 'Tidak ada deskripsi.').slice(0, 2500)}`
-      await ctx.reply(text)
+      const extract = (page.extract || 'Tidak ada deskripsi.').slice(0, 2000)
+      await ctx.reply(`📖 *${page.title}*\n\n${extract}\n\n🔗 ${page.fullurl ?? ''}`.trimEnd())
     } catch (err) {
       await ctx.reply(`❌ ${err.message}`)
     }

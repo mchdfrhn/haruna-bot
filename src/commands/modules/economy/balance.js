@@ -5,7 +5,9 @@ export default {
   name: 'balance',
   aliases: ['bal', 'saldo', 'dompet'],
   category: 'economy',
-  description: 'Lihat saldo kamu',
+  description: 'Lihat saldo cash, bank, dan level kamu',
+  usage: ['balance'],
+  examples: ['balance'],
   cooldown: 5_000,
 
   async execute(ctx) {
