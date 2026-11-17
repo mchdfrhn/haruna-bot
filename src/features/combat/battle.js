@@ -24,13 +24,18 @@ class BattleService {
       { jid: defenderJid, ...dStats },
     )
 
-    const winner = rounds.at(-1).aHp > 0 ? attackerJid : defenderJid
+    const last = rounds.at(-1)
+    // KO menentukan pemenang; jika 10 ronde habis, yang HP-nya (persentase) lebih tinggi menang.
+    const aRatio = last.aHp / aStats.max_hp, dRatio = last.dHp / dStats.max_hp
+    const attackerWins = last.dHp <= 0 ? true : last.aHp <= 0 ? false : aRatio >= dRatio
+    const winner = attackerWins ? attackerJid : defenderJid
+    const winnerMaxHp = attackerWins ? aStats.max_hp : dStats.max_hp
     const loser = winner === attackerJid ? defenderJid : attackerJid
 
     db.transaction(() => {
       statsModel.setHp(attackerJid, Math.max(0, rounds.at(-1).aHp))
       statsModel.setHp(defenderJid, Math.max(0, rounds.at(-1).dHp))
-      statsModel.addHp(winner, Math.floor(aStats.max_hp * HEAL_AFTER_PCT))
+      statsModel.addHp(winner, Math.floor(winnerMaxHp * HEAL_AFTER_PCT))
       statsModel.recordWin(winner)
       statsModel.recordLoss(loser)
       walletModel.reward(winner, REWARD_CASH, 'battle win')

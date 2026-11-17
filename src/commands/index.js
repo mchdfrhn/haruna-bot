@@ -1,2 +1,2 @@
 export { commandRegistry } from './registry.js'
-export { loadCommands, loadExtensions, reloadCommand } from './loader.js'
+export { loadCommands, loadExtensions, reloadCommand, reloadAllCommands } from './loader.js'

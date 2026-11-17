@@ -9,7 +9,9 @@ export default {
   name: 'daily',
   aliases: ['claim', 'harian'],
   category: 'economy',
-  description: 'Klaim reward harian kamu',
+  description: 'Klaim hadiah harian (cash + EXP), bisa tiap 20 jam',
+  usage: ['daily'],
+  examples: ['daily'],
   cooldown: DAILY_COOLDOWN,
 
   async execute(ctx) {

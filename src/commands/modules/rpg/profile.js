@@ -8,12 +8,14 @@ export default {
   name: 'profile',
   aliases: ['profil', 'rpg', 'char', 'character'],
   category: 'rpg',
-  description: 'Lihat profil RPG kamu',
+  description: 'Lihat profil RPG: level, stat, equipment, saldo, W/L',
+  usage: ['profile [@user]'],
+  examples: ['profile', 'profile @budi'],
   cooldown: 5_000,
 
   async execute(ctx) {
     const jid = ctx.mentions[0] ?? ctx.sender
-    const user = userModel.ensure(jid, { pushName: ctx.pushName })
+    const user = userModel.ensure(jid, jid === ctx.sender ? { pushName: ctx.pushName } : {})
     const wallet = walletModel.find(jid)
     const stats = statsModel.ensure(jid)
     const items = inventoryModel.getAll(jid)

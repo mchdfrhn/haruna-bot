@@ -104,7 +104,7 @@ src/
 │   ├── registry.js / loader.js / index.js
 │   └── modules/
 │       ├── general/   owner/     group/
-│       ├── economy/   rpg/       shop/
+│       ├── economy/   game/      rpg/       shop/
 │       ├── utility/   downloader/
 │
 ├── guards/                        # Middleware pipeline
@@ -141,6 +141,8 @@ export default {
   aliases:     ['hi'],
   category:    'general',
   description: 'Greet the user',
+  usage:       ['hello [nama]'],          // ditampilkan di !help (tanpa prefix)
+  examples:    ['hello Budi'],
   cooldown:    3_000,
   ownerOnly:   false,
   groupOnly:   false,
@@ -153,6 +155,10 @@ export default {
   },
 }
 ```
+
+`description`, `usage`, dan `examples` dipakai menu `!help` (`!help`, `!help <kategori>`, `!help <command>`),
+jadi isi ketiganya untuk setiap command baru. Kategori baru otomatis muncul di menu; atur ikon & deskripsinya di
+`CATEGORIES` pada `commands/modules/general/help.js`.
 
 Multiple commands per file? Use named exports ending with `Command`:
 
@@ -174,6 +180,9 @@ export const pingCommand = { name: 'ping', ... }
 | `ctx.downloadMedia()` | Download attached media |
 | `ctx.typing()` / `ctx.stopTyping()` | Typing indicator |
 | `ctx.isOwner()` | Check if sender is owner |
+| `ctx.usage(text)` | Reply with a usage hint **and refund the cooldown** (use for invalid input) |
+| `ctx.commandName` / `ctx.prefix` | The alias actually typed (e.g. `deposit`) / active prefix |
+| `ctx.hasMedia()` | Message or replied-to message contains media |
 
 ---
 
@@ -194,9 +203,10 @@ Cheapest checks first (in-memory / O(1) DB), most expensive last (group metadata
 | Feature | Tech |
 |---------|------|
 | AI Chat | OpenAI, Anthropic, Groq |
-| Economy | Cash, bank, daily, work, crime, slots, roulette, coinflip |
+| Economy | Cash, bank, daily, work, crime, transfer (5% tax) |
+| Game | Coinflip, roulette (European odds), slots |
 | RPG | PvP battle, PvE dungeon, XP/level, equipment, stats |
-| Shop | Buy, sell, equip, lootbox (gacha with rarity weights) |
+| Shop | Buy, sell, use (potions, EXP booster, bank upgrade, premium), equip, lootbox (gacha with rarity weights) |
 | Sticker | Image/video → WebP with EXIF metadata (ffmpeg) |
 | Downloader | YouTube, TikTok, Instagram, Facebook |
 | Media | Translate, TTS, weather, Wikipedia |
@@ -211,6 +221,7 @@ Cheapest checks first (in-memory / O(1) DB), most expensive last (group metadata
 - **Engine:** better-sqlite3 (synchronous, WAL mode)
 - **Pattern:** DAO per entity (user, wallet, stats, item, inventory, quest, group, cooldown)
 - **SQL:** Prepared statements via `lazyPrepare()` (deferred compilation)
+- **Seed:** items & quests are seeded automatically on first boot (`npm run db:seed` re-applies them)
 
 ---
 
@@ -234,7 +245,10 @@ Key variables in `.env` — full list in `.env.example`.
 | Variable | Description |
 |----------|-------------|
 | `BOT_NAME` | Bot display name |
-| `PREFIX` | Command prefix (default `.`) |
+| `PREFIX` | Command prefix (default `!`; can be overridden live with `!botsetting bot_prefix`) |
+| `YTDLP_PATH` | Path binary `yt-dlp` (default `yt-dlp` di PATH). Dipakai untuk YouTube & fallback TikTok/IG/FB |
+| `DOWNLOAD_MAX_MB` | Batas ukuran media unduhan (default `60`) |
+| `RATE_LIMIT_MAX` | Max commands per user per minute (default `15`) |
 | `OWNER_NUMBER` | Owner WhatsApp number |
 | `OPENAI_API_KEY` | AI provider key (or Anthropic/Groq) |
 | `DASH_TERMINAL` | `true` for TUI dashboard |

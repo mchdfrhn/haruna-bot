@@ -9,7 +9,7 @@ class StatsModel {
   _fullHeal = lazyPrepare('UPDATE stats SET hp = max_hp, updated_at = unixepoch() WHERE jid = @jid')
   _recordBattle = lazyPrepare('UPDATE stats SET win = win + @win, loss = loss + @loss, updated_at = unixepoch() WHERE jid = @jid')
   _equip = lazyPrepare('UPDATE stats SET weapon_id=@weaponId, armor_id=@armorId, atk=@atk, def=@def, max_hp=@maxHp, hp=MIN(hp,@maxHp), updated_at=unixepoch() WHERE jid=@jid')
-  _topWins = lazyPrepare('SELECT s.jid, s.win, s.loss, u.push_name, u.level FROM stats s JOIN users u ON u.jid = s.jid ORDER BY s.win DESC LIMIT ?')
+  _topWins = lazyPrepare('SELECT s.jid, s.win, s.loss, u.push_name, u.level FROM stats s JOIN users u ON u.jid = s.jid WHERE s.win + s.loss > 0 ORDER BY s.win DESC, s.loss ASC LIMIT ?')
 
   find(jid) { return this._find().get(jid) ?? null }
   ensure(jid) { this._ensure().run(jid); return this._find().get(jid) }

@@ -37,6 +37,7 @@ export function parseMessage(raw, sock) {
     rawArgs: text ? text.trim().split(/\s+/).slice(1).join(' ') : '',
     quoted, mentions,
     isMedia: MEDIA_TYPES.has(innerType),
+    mimetype: content?.mimetype ?? '',
     message: raw.message, raw,
     pushName: raw.pushName ?? '',
     timestamp: Number(raw.messageTimestamp ?? 0) * 1000,
@@ -76,6 +77,8 @@ function extractQuoted(raw, content, jid, sock) {
     type: qType, message: ctx.quotedMessage,
     text: qContent?.text ?? qContent?.caption ?? ctx.quotedMessage?.conversation ?? '',
     isMedia: MEDIA_TYPES.has(qType),
+    mimetype: qContent?.mimetype ?? '',
+    isAnimated: !!qContent?.isAnimated,
     download: () => downloadMediaMessage({
       key: { remoteJid: jid, id: ctx.stanzaId, participant: ctx.participant },
       message: ctx.quotedMessage,

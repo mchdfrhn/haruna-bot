@@ -14,7 +14,9 @@ export default {
   name: 'work',
   aliases: ['kerja', 'bekerja'],
   category: 'economy',
-  description: 'Cari uang dengan bekerja',
+  description: 'Bekerja untuk dapat cash + EXP (tiap 30 menit)',
+  usage: ['work'],
+  examples: ['work'],
   cooldown: 30 * 60 * 1000,
 
   async execute(ctx) {

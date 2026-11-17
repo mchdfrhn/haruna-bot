@@ -2,6 +2,7 @@ node_modules/
 sessions/
 session/
 data/
+temp/
 logs/
 
 .env

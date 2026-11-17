@@ -7,22 +7,24 @@ export default {
   name: 'battle',
   aliases: ['fight', 'lawan', 'duel'],
   category: 'rpg',
-  description: 'Tantang user lain untuk battle',
+  description: 'Duel PvP melawan user lain — pemenang dapat cash + EXP',
+  usage: ['battle @user', 'battle <nomor>'],
+  examples: ['battle @budi'],
   cooldown: 30_000,
 
   async execute(ctx) {
     const targetJid = ctx.mentions[0] ?? (ctx.args[0] ? phoneToJid(ctx.args[0]) : null)
-    if (!targetJid) return ctx.reply('Usage: `!battle @tag`')
-    if (targetJid === ctx.sender) return ctx.reply('❌ Tidak bisa battle sama diri sendiri.')
+    if (!targetJid) return ctx.usage('Cara pakai: `!battle @user`\nContoh: `!battle @budi`')
+    if (targetJid === ctx.sender) return ctx.usage('❌ Tidak bisa battle sama diri sendiri.')
 
     userModel.ensure(ctx.sender, { pushName: ctx.pushName })
     const target = userModel.findById(targetJid)
-    if (!target) return ctx.reply('❌ User tersebut belum terdaftar.')
+    if (!target) return ctx.usage('❌ User tersebut belum terdaftar (belum pernah memakai bot).')
 
     const aStats = statsModel.ensure(ctx.sender)
     const dStats = statsModel.ensure(targetJid)
-    if (aStats.hp <= 0) return ctx.reply('❤️ HP kamu 0! Pakai `!heal` dulu.')
-    if (dStats.hp <= 0) return ctx.reply('❤️ HP lawan sedang 0, tunggu dia heal dulu.')
+    if (aStats.hp <= 0) return ctx.usage('❤️ HP kamu 0! Pakai `!heal` dulu.')
+    if (dStats.hp <= 0) return ctx.usage('❤️ HP lawan sedang 0, tunggu dia heal dulu.')
 
     try {
       await ctx.react('⚔️')

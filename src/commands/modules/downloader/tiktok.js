@@ -1,3 +1,4 @@
+import { ytdlp } from '#features/platforms/ytdlp.js'
 import { tiktokService } from '#features/platforms/tiktok.js'
 import { downloaderService } from '#features/downloader.js'
 
@@ -5,12 +6,14 @@ export default {
   name: 'tiktok',
   aliases: ['tt', 'tiktokdl'],
   category: 'downloader',
-  description: 'Download video TikTok (tanpa watermark)',
+  description: 'Unduh video / slideshow TikTok tanpa watermark',
+  usage: ['tiktok <link>'],
+  examples: ['tiktok https://vt.tiktok.com/ZSabc123/', 'tt https://www.tiktok.com/@user/video/123'],
   cooldown: 30_000,
 
   async execute(ctx) {
     const url = ctx.args[0]
-    if (!url) return ctx.reply('Usage: `!tiktok <url>`')
+    if (!url) return ctx.usage('Cara pakai: `!tiktok <link>`\nContoh: `!tt https://vt.tiktok.com/ZSabc123/`')
 
     await ctx.typing()
     await ctx.react('⏳')
@@ -33,8 +36,14 @@ export default {
 
       await ctx.react('✅')
     } catch (err) {
+      // Resolver bawaan gagal → coba yt-dlp (jika terpasang)
+      const fb = await ytdlp.downloadIfAvailable(url).catch(() => null)
+      if (fb) {
+        await ctx.sendMedia('video', fb.buffer, fb.title, { mimetype: 'video/mp4' })
+        return ctx.react('✅')
+      }
       await ctx.react('❌')
-      await ctx.reply(`❌ ${err.message}`)
+      await ctx.usage(`❌ ${err.message}`)
     }
   },
 }

@@ -2,14 +2,16 @@ class CommandRegistry {
   constructor() {
     this._commands = new Map()
     this._categories = new Map()
+    this._files = new Map()
   }
 
-  register(command) {
+  register(command, file = null) {
     if (!command?.name || typeof command.execute !== 'function') {
       throw new Error(`Invalid command: must have "name" and "execute". Got: ${JSON.stringify(command)}`)
     }
 
     this._commands.set(command.name.toLowerCase(), command)
+    if (file) this._files.set(command.name.toLowerCase(), file)
 
     for (const alias of command.aliases ?? []) {
       this._commands.set(alias.toLowerCase(), command)
@@ -26,6 +28,7 @@ class CommandRegistry {
   has(name) { return this._commands.has(name.toLowerCase()) }
   getByCategory(category) { return this._categories.get(category) ?? [] }
   getCategories() { return [...this._categories.keys()] }
+  getFile(name) { const c = this.get(name); return c ? this._files.get(c.name.toLowerCase()) ?? null : null }
   getAll() { return [...new Set(this._commands.values())] }
   count() { return this.getAll().length }
 

@@ -4,9 +4,11 @@ const RARITY_EMOJI = { common: '⬜', uncommon: '🟩', rare: '🟦', epic: '�
 
 export default {
   name: 'lootbox',
-  aliases: ['lb', 'gacha', 'buka'],
+  aliases: ['gacha', 'buka', 'openbox'],
   category: 'shop',
-  description: 'Buka lootbox untuk dapat item random',
+  description: 'Buka 1 Lootbox Standar untuk dapat item acak',
+  usage: ['lootbox'],
+  examples: ['lootbox'],
   cooldown: 5_000,
 
   async execute(ctx) {

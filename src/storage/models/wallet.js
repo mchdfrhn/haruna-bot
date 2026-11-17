@@ -7,6 +7,8 @@ class WalletModel {
   _addBank = lazyPrepare('UPDATE wallets SET bank = bank + @amount, updated_at = unixepoch() WHERE jid = @jid')
   _insertTx = lazyPrepare('INSERT INTO transactions (from_jid, to_jid, amount, type, note) VALUES (@fromJid, @toJid, @amount, @type, @note)')
 
+  _addLimit = lazyPrepare('UPDATE wallets SET bank_limit = bank_limit + @amount, updated_at = unixepoch() WHERE jid = @jid')
+
   find(jid) { return this._find().get(jid) ?? null }
 
   addCash(jid, amount) {
@@ -21,18 +23,22 @@ class WalletModel {
     this._addBank().run({ jid, amount })
   }
 
+  addBankLimit(jid, amount) { this._addLimit().run({ jid, amount }) }
+
   reward(jid, amount, note = 'reward') {
     this._addCash().run({ jid, amount })
     this._insertTx().run({ fromJid: 'system', toJid: jid, amount, type: 'reward', note })
   }
 
-  transfer(fromJid, toJid, amount, note = '') {
+  // Pengirim membayar `amount + fee`, penerima menerima `amount`. Fee hilang (pajak).
+  transfer(fromJid, toJid, amount, note = '', fee = 0) {
     db.transaction(() => {
       const sender = this._find().get(fromJid)
-      if (!sender || sender.cash < amount) throw new Error('Saldo cash tidak cukup')
-      this._addCash().run({ jid: fromJid, amount: -amount })
+      if (!sender || sender.cash < amount + fee) throw new Error(`Saldo cash tidak cukup (butuh ${amount + fee}, termasuk pajak ${fee}).`)
+      if (!this._find().get(toJid)) throw new Error('Wallet penerima tidak ditemukan.')
+      this._addCash().run({ jid: fromJid, amount: -(amount + fee) })
       this._addCash().run({ jid: toJid, amount })
-      this._insertTx().run({ fromJid, toJid, amount, type: 'transfer', note })
+      this._insertTx().run({ fromJid, toJid, amount, type: 'transfer', note: fee ? `${note} (pajak ${fee})`.trim() : note })
     })()
   }
 

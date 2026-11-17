@@ -5,7 +5,9 @@ export default {
   name: 'history',
   aliases: ['riwayat', 'transaksi'],
   category: 'economy',
-  description: 'Lihat riwayat transaksi',
+  description: 'Lihat 10 transaksi terakhir kamu',
+  usage: ['history'],
+  examples: ['history'],
   cooldown: 5_000,
 
   async execute(ctx) {

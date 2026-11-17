@@ -1,8 +1,14 @@
+import { downloadMediaMessage } from 'baileys'
 import { isOwnerJid } from '#helpers/owner.js'
+import { cooldownModel } from '#storage/models/index.js'
+import { logger } from '#helpers/logger.js'
 
-export function buildContext(s, sock) {
+export function buildContext(s, sock, meta = {}) {
+  const { command = null, commandName = command?.name ?? '', prefix = '!' } = meta
+
   return {
     sock, msg: s, raw: s.raw,
+    command, commandName, prefix,
     jid: s.jid, sender: s.sender, fromMe: s.fromMe,
     isGroup: s.isGroup, isPrivate: !s.isGroup,
     text: s.text, args: s.args, rawArgs: s.rawArgs,
@@ -63,8 +69,23 @@ export function buildContext(s, sock) {
       return sock.relayMessage(s.jid, result.message, { messageId: result.key.id })
     },
 
+    // Balas pesan penggunaan & kembalikan cooldown agar user tidak "terkunci" karena salah ketik.
+    usage: (text, options = {}) => {
+      if (command) cooldownModel.clear(s.sender, command.name)
+      const body = typeof text === 'string' ? { text } : text
+      return sock.sendMessage(s.jid, { ...body, ...options }, { quoted: s.raw })
+    },
+
     deleteMessage: (msgKey = s.key) => sock.sendMessage(s.jid, { delete: msgKey }),
-    downloadMedia: () => s.isMedia ? sock.downloadMediaMessage(s.raw) : Promise.resolve(null),
+    hasMedia: () => !!(s.isMedia || s.quoted?.isMedia),
+    // Download media dari pesan ini, atau dari pesan yang di-reply. Mengembalikan Buffer / null.
+    downloadMedia: async () => {
+      const target = s.isMedia ? s.raw
+        : s.quoted?.isMedia ? { key: s.quoted.key, message: s.quoted.message }
+        : null
+      if (!target) return null
+      return downloadMediaMessage(target, 'buffer', {}, { logger, reuploadRequest: sock.updateMediaMessage })
+    },
     typing: () => sock.sendPresenceUpdate('composing', s.jid),
     stopTyping: () => sock.sendPresenceUpdate('paused', s.jid),
     markRead: () => sock.readMessages([s.key]),

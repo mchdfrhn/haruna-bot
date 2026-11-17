@@ -1,3 +1,7 @@
+import { jidNormalizedUser } from 'baileys'
+
+const norm = j => (j ? jidNormalizedUser(j) : null)
+
 export async function checkAdmin(ctx, command) {
   if (!command.adminOnly) return true
 
@@ -10,11 +14,13 @@ export async function checkAdmin(ctx, command) {
 
   try {
     const meta = await ctx.sock.groupMetadata(ctx.jid)
-    const admins = meta.participants
-      .filter(p => p.admin === 'admin' || p.admin === 'superadmin')
-      .map(p => p.id)
+    // Grup bisa memakai LID atau nomor telepon; cocokkan semua identitas pengirim.
+    const mine = new Set([ctx.sender, ctx.msg.senderAlt, ctx.msg.jidAlt].map(norm).filter(Boolean))
+    const isAdmin = meta.participants.some(p =>
+      (p.admin === 'admin' || p.admin === 'superadmin') &&
+      [p.id, p.phoneNumber, p.lid].map(norm).some(j => j && mine.has(j)))
 
-    if (admins.includes(ctx.sender)) return true
+    if (isAdmin) return true
 
     await ctx.reply('Command ini khusus admin grup.')
     return false

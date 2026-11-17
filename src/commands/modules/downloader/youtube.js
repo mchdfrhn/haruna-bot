@@ -1,43 +1,42 @@
 import { youtubeService } from '#features/platforms/youtube.js'
 import { F } from '#helpers/index.js'
 
+const AUDIO_WORDS = new Set(['audio', 'a', 'mp3'])
+
 export default {
   name: 'youtube',
-  aliases: ['yt', 'ytdl', 'yta'],
+  aliases: ['yt', 'ytdl', 'yta', 'ytmp3'],
   category: 'downloader',
-  description: 'Download video/audio YouTube',
+  description: 'Unduh video atau audio (MP3) dari YouTube',
+  usage: ['youtube <link>', 'youtube audio <link>', 'yta <link>'],
+  examples: ['youtube https://youtu.be/dQw4w9WgXcQ', 'yta https://youtu.be/dQw4w9WgXcQ'],
   cooldown: 30_000,
 
   async execute(ctx) {
-    const sub = ctx.args[0]?.toLowerCase()
-    const url = ctx.args.find(a => a.includes('youtu')) || ctx.args[0]
+    // !yta / !ytmp3 selalu audio; !youtube audio <link> juga audio
+    const audioOnly = ['yta', 'ytmp3'].includes(ctx.commandName) || AUDIO_WORDS.has(ctx.args[0]?.toLowerCase())
+    const url = ctx.args.find(a => /youtu/i.test(a))
 
-    if (!url) return ctx.reply('Usage: `!youtube <url>` | `!youtube audio <url>`')
+    if (!url) return ctx.usage('Cara pakai:\n`!youtube <link>` — video\n`!youtube audio <link>` atau `!yta <link>` — audio')
 
     await ctx.typing()
     await ctx.react('⏳')
 
     try {
-      const audioOnly = sub === 'audio' || sub === 'a' || sub === 'mp3'
-      const result = await youtubeService.resolve(audioOnly ? ctx.args[1] || url : url, { audioOnly })
-      const duration = F.formatDuration(result.duration * 1000)
+      const r = await youtubeService.download(url, { audioOnly })
+      const duration = F.formatDuration((r.duration || 0) * 1000)
 
       if (audioOnly) {
-        const buf = await youtubeService.toBuffer(result.url)
-        await ctx.sendMedia('audio', buf, `🎵 ${result.title}`, { mimetype: 'audio/mpeg', ptt: false })
-        await ctx.react('✅')
-      } else if (result.mode === 'progressive') {
-        const buf = await youtubeService.toBuffer(result.url)
-        await ctx.sendMedia('video', buf, `🎬 ${result.title}\n⏱ ${duration}\n📺 ${result.quality}`, { mimetype: 'video/mp4' })
-        await ctx.react('✅')
+        await ctx.sendMedia('audio', r.buffer, '', { mimetype: 'audio/mpeg', ptt: false })
       } else {
-        const videoBuf = await youtubeService.toBuffer(result.videoUrl)
-        await ctx.sendMedia('video', videoBuf, `🎬 ${result.title}\n⏱ ${duration}\n📺 ${result.quality}\n_Adaptive — audio terpisah_`, { mimetype: 'video/mp4' })
-        await ctx.react('✅')
+        const info = [`🎬 ${r.title}`, r.duration ? `⏱ ${duration}` : '', r.quality ? `📺 ${r.quality}` : ''].filter(Boolean).join('\n')
+        const note = r.silent ? '\n_Video tanpa suara — coba `!yta` untuk audionya._' : ''
+        await ctx.sendMedia('video', r.buffer, info + note, { mimetype: 'video/mp4' })
       }
+      await ctx.react('✅')
     } catch (err) {
       await ctx.react('❌')
-      await ctx.reply(`❌ ${err.message}`)
+      await ctx.usage(`❌ ${err.message}`)
     }
   },
 }

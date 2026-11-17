@@ -1,16 +1,16 @@
 import { F } from '#helpers/index.js'
 
-const startTime = Date.now()
-
 export default {
   name: 'system',
   aliases: ['sys', 'host'],
   category: 'owner',
-  description: 'Lihat info sistem bot',
+  description: 'Info server: uptime, memori, CPU, versi Node',
+  usage: ['system'],
+  examples: ['system'],
   cooldown: 0, ownerOnly: true,
 
   async execute(ctx) {
-    const uptime = F.formatDuration(Date.now() - startTime)
+    const uptime = F.formatDuration(process.uptime() * 1000)
     const mem = process.memoryUsage()
     const cpu = process.cpuUsage()
     const nodeVer = process.version

@@ -14,7 +14,9 @@ export default {
   name: 'mine',
   aliases: ['mining', 'tambang'],
   category: 'rpg',
-  description: 'Menambang mineral untuk dapat uang',
+  description: 'Menambang mineral untuk dapat cash + EXP',
+  usage: ['mine'],
+  examples: ['mine'],
   cooldown: 30_000,
 
   async execute(ctx) {

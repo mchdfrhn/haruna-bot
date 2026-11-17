@@ -4,7 +4,9 @@ export default {
   name: 'tools',
   aliases: ['tool', 'admin'],
   category: 'owner',
-  description: 'Tools admin (db query, dll)',
+  description: 'Jalankan query SQL langsung ke database (berbahaya)',
+  usage: ['tools db <query SQL>'],
+  examples: ['tools db SELECT COUNT(*) AS n FROM users'],
   cooldown: 0, ownerOnly: true,
 
   async execute(ctx) {
@@ -12,7 +14,7 @@ export default {
 
     if (sub === 'db' || sub === 'query') {
       const query = ctx.rawArgs.replace(/^(db|query)\s+/i, '')
-      if (!query) return ctx.reply('Usage: `!tools db <query>`')
+      if (!query) return ctx.usage('Cara pakai: `!tools db <query SQL>`')
       try {
         const result = query.trim().toUpperCase().startsWith('SELECT') ? db.prepare(query).all() : db.prepare(query).run()
         await ctx.reply(`✅ Query OK:\n\`\`\`\n${JSON.stringify(result, null, 2).slice(0, 3000)}\n\`\`\``)
@@ -20,6 +22,6 @@ export default {
       return
     }
 
-    await ctx.reply('Usage: `!tools db <query>`')
+    await ctx.usage('Cara pakai: `!tools db <query SQL>`')
   },
 }

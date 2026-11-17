@@ -1,16 +1,18 @@
+import { ytdlp } from '#features/platforms/ytdlp.js'
 import { instagramService } from '#features/platforms/instagram.js'
-import { downloaderService } from '#features/downloader.js'
 
 export default {
   name: 'instagram',
   aliases: ['ig', 'igdl', 'reels'],
   category: 'downloader',
-  description: 'Download media Instagram (post/reel)',
+  description: 'Unduh foto/video/carousel Instagram (post & reel)',
+  usage: ['instagram <link>'],
+  examples: ['instagram https://www.instagram.com/reel/AbCdEf/', 'ig https://www.instagram.com/p/AbCdEf/'],
   cooldown: 30_000,
 
   async execute(ctx) {
     const url = ctx.args[0]
-    if (!url) return ctx.reply('Usage: `!instagram <url>`')
+    if (!url) return ctx.usage('Cara pakai: `!instagram <link>`\nContoh: `!ig https://www.instagram.com/reel/AbCdEf/`')
 
     await ctx.typing()
     await ctx.react('⏳')
@@ -33,8 +35,14 @@ export default {
 
       await ctx.react('✅')
     } catch (err) {
+      // Resolver bawaan gagal → coba yt-dlp (jika terpasang)
+      const fb = await ytdlp.downloadIfAvailable(url).catch(() => null)
+      if (fb) {
+        await ctx.sendMedia('video', fb.buffer, fb.title, { mimetype: 'video/mp4' })
+        return ctx.react('✅')
+      }
       await ctx.react('❌')
-      await ctx.reply(`❌ ${err.message}`)
+      await ctx.usage(`❌ ${err.message}`)
     }
   },
 }

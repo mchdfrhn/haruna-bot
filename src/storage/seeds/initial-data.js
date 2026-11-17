@@ -1,12 +1,8 @@
-import { initializeDatabase } from '#storage/initializer.js'
+import { itemModel } from '#storage/models/item.js'
+import { questModel } from '#storage/models/quest.js'
 import { logger } from '#helpers/logger.js'
 
-await initializeDatabase()
-
-const { itemModel } = await import('#storage/models/item.js')
-const { questModel } = await import('#storage/models/quest.js')
-
-const ITEMS = [
+export const ITEMS = [
   { id: 'potion_hp_sm', name: 'Health Potion (S)', description: 'Pulihkan 50 HP', category: 'consumable', price: 500, rarity: 'common', sellable: true, stackable: true, data: { heal: 50 } },
   { id: 'potion_hp_md', name: 'Health Potion (M)', description: 'Pulihkan 150 HP', category: 'consumable', price: 1200, rarity: 'uncommon', sellable: true, stackable: true, data: { heal: 150 } },
   { id: 'potion_hp_lg', name: 'Health Potion (L)', description: 'Pulihkan 500 HP', category: 'consumable', price: 3500, rarity: 'rare', sellable: true, stackable: true, data: { heal: 500 } },
@@ -23,7 +19,7 @@ const ITEMS = [
   { id: 'lootbox_std', name: 'Lootbox Standar', description: 'Item random gacha', category: 'special', price: 2000, rarity: 'common', sellable: false, stackable: true, data: {} },
 ]
 
-const QUESTS = [
+export const QUESTS = [
   { id: 'daily_win', name: 'Pemenang Harian', description: 'Menang 3 battle hari ini', type: 'daily', goal: 3, rewardCash: 3000, rewardExp: 50 },
   { id: 'daily_rob', name: 'Perampok Harian', description: 'Rampok 1 user hari ini', type: 'daily', goal: 1, rewardCash: 1500, rewardExp: 20 },
   { id: 'daily_shop', name: 'Belanja Harian', description: 'Beli 1 item di toko', type: 'daily', goal: 1, rewardCash: 500, rewardExp: 10 },
@@ -31,9 +27,14 @@ const QUESTS = [
   { id: 'total_battles', name: 'Battle Maniac', description: 'Ikut 50 battle total', type: 'story', goal: 50, rewardCash: 10000, rewardExp: 200, rewardItem: 'sword_steel' },
 ]
 
-itemModel.bulkUpsert(ITEMS)
-logger.info(`Seeded ${ITEMS.length} items`)
+// Idempotent (upsert) — aman dijalankan berulang kali.
+export function seedInitialData() {
+  itemModel.bulkUpsert(ITEMS)
+  questModel.bulkUpsert(QUESTS)
+  logger.info(`Seeded ${ITEMS.length} items, ${QUESTS.length} quests`)
+}
 
-questModel.bulkUpsert(QUESTS)
-logger.info(`Seeded ${QUESTS.length} quests`)
-logger.info('Seed complete — run: npm run dev')
+// Dipanggil saat boot: isi data awal hanya jika tabel item/quest masih kosong.
+export function seedIfEmpty() {
+  if (itemModel.findAll().length === 0 || questModel.allQuests().length === 0) seedInitialData()
+}

@@ -1,15 +1,19 @@
 import { userModel, statsModel } from '#storage/models/index.js'
+import { F } from '#helpers/index.js'
 
 export default {
   name: 'leaderboard',
   aliases: ['lb', 'top', 'ranking'],
   category: 'rpg',
-  description: 'Lihat leaderboard user',
+  description: 'Peringkat user berdasarkan level atau kemenangan PvP',
+  usage: ['leaderboard [pvp] [jumlah]'],
+  examples: ['leaderboard', 'top pvp 5'],
   cooldown: 10_000,
 
   async execute(ctx) {
     const sub = ctx.args[0]?.toLowerCase()
-    const limit = parseInt(ctx.args[1]) || 10
+    const limitArg = /^\d+$/.test(sub ?? '') ? sub : ctx.args[1]
+    const limit = Math.min(25, Math.max(1, parseInt(limitArg) || 10))
 
     if (sub === 'pvp' || sub === 'battle') {
       const top = statsModel.topWins(limit)
@@ -29,7 +33,7 @@ export default {
     let text = `⭐ *Leaderboard Level* (Top ${limit})\n\n`
     top.forEach((u, i) => {
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`
-      text += `${medal} *${u.push_name || u.jid.split('@')[0]}* — Level ${u.level} | 🪙${u.total_balance.toLocaleString()}\n`
+      text += `${medal} *${u.push_name || u.jid.split('@')[0]}* — Level ${u.level} | 🪙${F.formatNumber(u.total_balance ?? 0)}\n`
     })
     await ctx.reply(text)
   },

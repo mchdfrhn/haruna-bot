@@ -1,5 +1,5 @@
 import { dungeonService } from '#features/combat/dungeon.js'
-import { statsModel } from '#storage/models/index.js'
+import { statsModel, itemModel } from '#storage/models/index.js'
 import { F } from '#helpers/index.js'
 
 const HP_LEN = 8
@@ -9,7 +9,9 @@ export default {
   name: 'dungeon',
   aliases: ['dg', 'explore', 'pve'],
   category: 'rpg',
-  description: 'Masuki dungeon dan lawan monster PvE',
+  description: 'Lawan monster PvE untuk cash, EXP, dan drop item',
+  usage: ['dungeon', 'dungeon monsters'],
+  examples: ['dungeon', 'dg monsters'],
   cooldown: 15_000,
 
   async execute(ctx) {
@@ -45,7 +47,7 @@ export default {
       let text = `${monster.emoji} *DUNGEON — ${monster.name}*\n\n${roundLog}${rounds.length > 4 ? `\n  _...${rounds.length - 4} ronde lagi..._` : ''}\n\n${won ? '🏆 *MENANG!*' : '💀 *KALAH!*'}\n❤️ HP: [${hpBar}] ${finalHp}`
       if (won) {
         text += `\n\n🎁 *Reward:*\n  🪙 +${F.formatNumber(rewardCash)}\n  ⭐ +${rewardExp} EXP`
-        if (drop) text += `\n  📦 Drop: *${drop}*`
+        if (drop) text += `\n  📦 Drop: *${itemModel.findById(drop)?.name ?? drop}*`
       } else {
         text += `\n⭐ +${rewardExp} EXP (consolation)`
       }

@@ -21,7 +21,8 @@ class DungeonService {
     const pool = this._monsterPool(pUser.level)
     const monster = pool[Math.floor(Math.random() * pool.length)]
     const rounds = this._simulate(pStats, monster)
-    const won = rounds.at(-1).pHp > 0
+    // Menang hanya jika monster benar-benar kalah (bukan sekadar bertahan 15 ronde)
+    const won = rounds.at(-1).mHp <= 0 && rounds.at(-1).pHp > 0
 
     const rewardCash = won ? Math.floor(monster.reward[0] + Math.random() * (monster.reward[1] - monster.reward[0])) : 0
     const rewardExp = won ? monster.exp : Math.floor(monster.exp * 0.2)
@@ -60,21 +61,26 @@ class DungeonService {
     for (let i = 0; i < 15 && pHp > 0 && mHp > 0; i++) {
       const r = { round: i + 1, pHp, mHp, events: [] }
 
-      const pDmg = Math.max(1, pStats.atk - Math.floor(monster.def / 2))
-      const pVar = Math.floor(pDmg * 0.2)
-      mHp = Math.max(0, mHp - Math.max(1, pDmg + Math.floor(Math.random() * pVar * 2) - pVar))
-      r.events.push({ by: 'player', dmg: Math.max(1, pDmg + Math.floor(Math.random() * pVar * 2) - pVar) })
+      const pHit = this._hit(pStats.atk, monster.def)
+      mHp = Math.max(0, mHp - pHit)
+      r.events.push({ by: 'player', dmg: pHit })
 
       if (mHp <= 0) { r.pHp = pHp; r.mHp = 0; rounds.push(r); break }
 
-      const mDmg = Math.max(1, monster.atk - Math.floor(pStats.def / 2))
-      const mVar = Math.floor(mDmg * 0.2)
-      pHp = Math.max(0, pHp - Math.max(1, mDmg + Math.floor(Math.random() * mVar * 2) - mVar))
-      r.events.push({ by: 'monster', dmg: Math.max(1, mDmg + Math.floor(Math.random() * mVar * 2) - mVar) })
+      const mHit = this._hit(monster.atk, pStats.def)
+      pHp = Math.max(0, pHp - mHit)
+      r.events.push({ by: 'monster', dmg: mHit })
 
       r.pHp = pHp; r.mHp = mHp; rounds.push(r)
     }
     return rounds
+  }
+
+  // Damage = ATK - DEF/2 (min 1) dengan variasi ±20%
+  _hit(atk, def) {
+    const base = Math.max(1, atk - Math.floor(def / 2))
+    const vary = Math.floor(base * 0.2)
+    return Math.max(1, base + Math.floor(Math.random() * (vary * 2 + 1)) - vary)
   }
 
   _rollDrop(monster) {

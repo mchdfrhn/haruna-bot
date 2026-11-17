@@ -12,33 +12,61 @@ try { fs.mkdirSync(TEMP_DIR, { recursive: true }) } catch {}
 
 function getRandom(ext) { return `${randomBytes(6).toString('hex')}.${ext}` }
 
+const rm = (...files) => files.forEach(f => fs.promises.unlink(f).catch(() => {}))
+
+const STICKER_VF = "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15,pad=320:320:-1:-1:color=white@0.0,split[a][b];[a]palettegen=reserve_transparent=on:transparency_color=ffffff[p];[b][p]paletteuse"
+
+function runFfmpeg(input, output, options, format) {
+  return new Promise((resolve, reject) => {
+    const cmd = ff(input).on('error', reject).on('end', () => resolve(true)).addOutputOptions(options)
+    if (format) cmd.toFormat(format)
+    cmd.save(output)
+  })
+}
+
 export async function imageToWebp(media) {
   const tmpOut = path.join(TEMP_DIR, getRandom('webp'))
   const tmpIn = path.join(TEMP_DIR, getRandom('jpg'))
   fs.writeFileSync(tmpIn, media)
-  await new Promise((resolve, reject) => {
-    ff(tmpIn).on('error', reject).on('end', () => resolve(true))
-      .addOutputOptions(['-vcodec', 'libwebp', '-vf', "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15,pad=320:320:-1:-1:color=white@0.0,split[a][b];[a]palettegen=reserve_transparent=on:transparency_color=ffffff[p];[b][p]paletteuse"])
-      .toFormat('webp').save(tmpOut)
-  })
-  const buff = fs.readFileSync(tmpOut)
-  fs.promises.unlink(tmpOut).catch(() => {}); fs.promises.unlink(tmpIn).catch(() => {})
-  return buff
+  try {
+    await runFfmpeg(tmpIn, tmpOut, ['-vcodec', 'libwebp', '-vf', STICKER_VF], 'webp')
+    return fs.readFileSync(tmpOut)
+  } finally { rm(tmpIn, tmpOut) }
 }
 
 export async function videoToWebp(media) {
   const tmpOut = path.join(TEMP_DIR, getRandom('webp'))
   const tmpIn = path.join(TEMP_DIR, getRandom('mp4'))
   fs.writeFileSync(tmpIn, media)
-  await new Promise((resolve, reject) => {
-    ff(tmpIn).on('error', reject).on('end', () => resolve(true))
-      .addOutputOptions(['-vcodec', 'libwebp', '-vf', "scale='min(320,iw)':min'(320,ih)':force_original_aspect_ratio=decrease,fps=15,pad=320:320:-1:-1:color=white@0.0,split[a][b];[a]palettegen=reserve_transparent=on:transparency_color=ffffff[p];[b][p]paletteuse",
-        '-loop', '0', '-ss', '00:00:00.0', '-t', '00:00:05.0', '-preset', 'default', '-an', '-vsync', '0'])
-      .toFormat('webp').save(tmpOut)
-  })
-  const buff = fs.readFileSync(tmpOut)
-  fs.promises.unlink(tmpOut).catch(() => {}); fs.promises.unlink(tmpIn).catch(() => {})
-  return buff
+  try {
+    await runFfmpeg(tmpIn, tmpOut, ['-vcodec', 'libwebp', '-vf', STICKER_VF, '-loop', '0', '-ss', '00:00:00.0', '-t', '00:00:05.0', '-preset', 'default', '-an', '-vsync', '0'], 'webp')
+    return fs.readFileSync(tmpOut)
+  } finally { rm(tmpIn, tmpOut) }
+}
+
+// Stiker (webp) → gambar PNG. Untuk stiker animasi, hanya frame pertama yang diambil.
+export async function webpToPng(media) {
+  const tmpOut = path.join(TEMP_DIR, getRandom('png'))
+  const tmpIn = path.join(TEMP_DIR, getRandom('webp'))
+  const tmpRaw = path.join(TEMP_DIR, getRandom('rgba'))
+  fs.writeFileSync(tmpIn, media)
+  try {
+    try {
+      await runFfmpeg(tmpIn, tmpOut, ['-frames:v', '1'], 'image2')
+    } catch {
+      // ffmpeg tidak bisa decode WebP animasi → ambil frame pertama (RGBA mentah) lewat node-webpmux
+      await webp.Image.initLib()
+      const img = new webp.Image()
+      await img.load(media)
+      if (!img.hasAnim) throw new Error('File stiker tidak valid.')
+      fs.writeFileSync(tmpRaw, await img.getFrameData(0))
+      await new Promise((resolve, reject) => {
+        ff(tmpRaw).inputOptions(['-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${img.width}x${img.height}`])
+          .on('error', reject).on('end', resolve).addOutputOptions(['-frames:v', '1']).save(tmpOut)
+      })
+    }
+    return fs.readFileSync(tmpOut)
+  } finally { rm(tmpIn, tmpOut, tmpRaw) }
 }
 
 export async function writeExif(media, metadata = {}) {
@@ -74,14 +102,13 @@ export async function writeExif(media, metadata = {}) {
   const exif = Buffer.concat([exifAttr, jsonBuff])
   exif.writeUIntLE(jsonBuff.length, 14, 4)
 
-  const img = new webp.Image()
-  await img.load(tmpIn)
-  fs.promises.unlink(tmpIn).catch(() => {})
-  img.exif = exif
-  await img.save(tmpOut)
-  const result = fs.readFileSync(tmpOut)
-  fs.promises.unlink(tmpOut).catch(() => {})
-  return result
+  try {
+    const img = new webp.Image()
+    await img.load(tmpIn)
+    img.exif = exif
+    await img.save(tmpOut)
+    return fs.readFileSync(tmpOut)
+  } finally { rm(tmpIn, tmpOut) }
 }
 
 export async function toStickerBuffer(buffer, meta = {}) {
