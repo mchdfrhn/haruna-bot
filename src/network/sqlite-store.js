@@ -36,7 +36,7 @@ export async function useSQLiteAuthState(sessionId = 'default') {
   let creds = (() => {
     const row = getCred.get(sessionId, 'creds')
     if (!row) return null
-    try { return JSON.parse(row.value) } catch { return null }
+    try { return JSON.parse(row.value, BufferJSON.reviver) } catch { return null }
   })()
 
   if (!creds) {
